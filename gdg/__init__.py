@@ -199,16 +199,19 @@ class ApiController(object):
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def list(self, gallery=""):
+    def list(self, gallery="", children=False, details=False):
         model = get_viewmodel()
         dbpath = cherrypy.request.app.config['database']['path']
         baseurl = urljoin(cherrypy.request.base, cherrypy.request.script_name + '/')
-        result = {}
+        result = get_viewmodel() if details else {}
         with GoddamnDatabase(dbpath):
             images = Image.select()
             if not gallery == "" and not gallery == None:
-                images = images.where(Image.gallery == gallery)
+                g = gallery + "%" if children else gallery
+                images = images.where(Image.gallery ** g)
                 result["gallery"] = gallery
+            elif not children:
+                images = images.where(Image.gallery == "")
                 
             images = images.order_by(SQL('path collate nocase'))
             result["images"] = [get_relative_path(baseurl, i.path) for i in images]
